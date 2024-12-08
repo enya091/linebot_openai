@@ -220,7 +220,24 @@ def handle_postback(event):
 
     elif data.startswith("taste="):
         user_data[user_id]["taste"] = data.split("=")[1]
-        ask_occasion(event
+        ask_occasion(event, user_id)
 
+    elif data.startswith("occasion="):
+        user_data[user_id]["occasion"] = data.split("=")[1]
+        ask_weather(event, user_id)
 
+    elif data.startswith("weather="):
+        user_data[user_id]["weather"] = data.split("=")[1]
+        # 所有問題回答完成，生成推薦
+        drink = user_data[user_id]["drink"]
+        mood = user_data[user_id]["mood"]
+        taste = user_data[user_id]["taste"]
+        occasion = user_data[user_id]["occasion"]
+        weather = user_data[user_id]["weather"]
+        
+        recommendation = GPT_recommendation(drink, mood, taste, occasion, weather)
+        
+        line_bot_api.reply_message(event.reply_token, TextSendMessage(recommendation))
 
+        # 清空使用者資料
+        user_data[user_id] = {"drink": None, "mood": None, "taste": None, "occasion": None, "weather": None}
