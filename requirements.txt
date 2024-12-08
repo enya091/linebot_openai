@@ -1,5 +1,5 @@
 line-bot-sdk==3.14.2  # 這個是最新版，請根據需要使用
-flask==3.1.0
+flask==2.1.1
 openai<1.0.0
 gunicorn
 
