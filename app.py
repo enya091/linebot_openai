@@ -45,12 +45,14 @@ def GPT_recommendation(drink, mood, taste):
 def callback():
     signature = request.headers['X-Line-Signature']
     body = request.get_data(as_text=True)
-    app.logger.info(f"Request body: {body}")
+    app.logger.info(f"Webhook received: {body}")  # 紀錄 Webhook 請求
     try:
         handler.handle(body, signature)
     except InvalidSignatureError:
+        app.logger.error("Invalid signature error")
         abort(400)
     return 'OK'
+
 
 @handler.add(FollowEvent)
 def welcome_message(event):
@@ -62,7 +64,11 @@ def welcome_message(event):
         user_data[user_id] = {"drink": None, "mood": None, "taste": None}
 
     welcome_text = "哈囉！歡迎光臨 xx 調酒店！✨\n接下來讓我們為你挑選一款適合的調酒！"
-    line_bot_api.reply_message(event.reply_token, TextSendMessage(welcome_text))
+    try:
+        line_bot_api.reply_message(event.reply_token, TextSendMessage(welcome_text))
+        app.logger.info("Welcome message sent successfully")
+    except Exception as e:
+        app.logger.error(f"Error sending welcome message: {e}")
 
     # 問第一個問題
     ask_drink(event, user_id)
@@ -71,6 +77,7 @@ def ask_drink(event, user_id):
     """
     問第一個問題：今天想喝什麼酒？
     """
+    app.logger.info(f"Asking drink question for user: {user_id}")  # 確保函數被執行
     buttons_template = TemplateSendMessage(
         alt_text='選擇酒類',
         template=ButtonsTemplate(
@@ -84,12 +91,17 @@ def ask_drink(event, user_id):
             ]
         )
     )
-    line_bot_api.push_message(user_id, buttons_template)
+    try:
+        line_bot_api.push_message(user_id, buttons_template)
+        app.logger.info("Drink question sent successfully")
+    except Exception as e:
+        app.logger.error(f"Error sending drink question: {e}")  # 錯誤日誌
 
 def ask_mood(event, user_id):
     """
     問第二個問題：今天心情如何？
     """
+    app.logger.info(f"Asking mood question for user: {user_id}")
     buttons_template = TemplateSendMessage(
         alt_text='選擇心情',
         template=ButtonsTemplate(
@@ -103,12 +115,17 @@ def ask_mood(event, user_id):
             ]
         )
     )
-    line_bot_api.push_message(user_id, buttons_template)
+    try:
+        line_bot_api.push_message(user_id, buttons_template)
+        app.logger.info("Mood question sent successfully")
+    except Exception as e:
+        app.logger.error(f"Error sending mood question: {e}")
 
 def ask_taste(event, user_id):
     """
     問第三個問題：現在比較想吃什麼？
     """
+    app.logger.info(f"Asking taste question for user: {user_id}")
     buttons_template = TemplateSendMessage(
         alt_text='選擇口味',
         template=ButtonsTemplate(
@@ -122,7 +139,11 @@ def ask_taste(event, user_id):
             ]
         )
     )
-    line_bot_api.push_message(user_id, buttons_template)
+    try:
+        line_bot_api.push_message(user_id, buttons_template)
+        app.logger.info("Taste question sent successfully")
+    except Exception as e:
+        app.logger.error(f"Error sending taste question: {e}")
 
 @handler.add(PostbackEvent)
 def handle_postback(event):
@@ -131,6 +152,7 @@ def handle_postback(event):
     """
     user_id = event.source.user_id
     data = event.postback.data
+    app.logger.info(f"PostbackEvent triggered for user: {user_id}, data: {data}")  # 確保按鈕事件有觸發
 
     if user_id not in user_data:
         user_data[user_id] = {"drink": None, "mood": None, "taste": None}
@@ -154,7 +176,6 @@ def handle_postback(event):
         taste = user_data[user_id]["taste"]
         recommendation = GPT_recommendation(drink, mood, taste)
         
-        # 回覆推薦結果
         line_bot_api.reply_message(event.reply_token, TextSendMessage(recommendation))
 
         # 清空使用者資料
@@ -183,4 +204,5 @@ def handle_message(event):
 if __name__ == "__main__":
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
+
 
